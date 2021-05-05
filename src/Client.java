@@ -78,7 +78,12 @@ public class Client {
         BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
         String inputLine;
         start = System.currentTimeMillis();
+        final Exception[] exception = {null}; // Used to check if the ACK retry thread encountered an error
         while ((inputLine = in.readLine()) != null) {
+            if (exception[0] != null) { // Throws error if thread from ACK retry is found, can't throw from thread class itself
+                throw exception[0];
+            }
+
             byte[] b = inputLine.getBytes();
             for (int i = 0; i < b.length; i = i + z) { // Make sure you send everything in this line of data
                 byte[] buf = padBuffer(Arrays.copyOfRange(b, i, Math.min(i + z, b.length)), z); // Ensure the bytes sent in the packet are of size z
@@ -88,7 +93,16 @@ public class Client {
                 System.out.println("C: " + new String(buf, 0, z));
 
                 // STEP 2.7
-                receiveAck(false, packet);
+                // Spin up new thread to check for ACK of packet
+                Thread thread = new Thread(() -> {
+                    try {
+                        receiveAck(false, packet);
+                    } catch (Exception e) {
+                        exception[0] = e; // Register error to be thrown since we can't throw directly from this object
+                    }
+                });
+
+                thread.start();
             }
         }
         in.close();
