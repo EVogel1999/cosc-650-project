@@ -88,14 +88,13 @@ public class Client {
             for (int i = 0; i < b.length; i = i + z) { // Make sure you send everything in this line of data
                 byte[] buf = padBuffer(Arrays.copyOfRange(b, i, Math.min(i + z, b.length)), z); // Ensure the bytes sent in the packet are of size z
                 DatagramPacket packet = new DatagramPacket(buf, z, address, 22333);
-                // STEP 2.5
-                socket.send(packet);
-                System.out.println("C: " + new String(buf, 0, z));
-
-                // STEP 2.7
-                // Spin up new thread to check for ACK of packet
+                              
+                // Spin up new thread to check for Send and receive ACK of packet
                 Thread thread = new Thread(() -> {
                     try {
+                        // STEP 2.5
+                        socket.send(packet);
+                        // STEP 2.7
                         receiveAck(false, packet);
                     } catch (Exception e) {
                         exception[0] = e; // Register error to be thrown since we can't throw directly from this object
@@ -103,6 +102,7 @@ public class Client {
                 });
 
                 thread.start();
+                System.out.println("C: " + new String(buf, 0, z));
             }
         }
         in.close();
